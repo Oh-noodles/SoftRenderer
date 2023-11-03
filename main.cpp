@@ -52,9 +52,9 @@ float edgeFunction(Vec2i v0, Vec2i v1, Vec2i v2) {
 }
 
 bool inside(Vec2i v0, Vec2i v1, Vec2i v2, Vec2i p) {
-    int e0 = (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x);
-    int e1 = (p.x - v1.x) * (v2.y - v1.y) - (p.y - v1.y) * (v2.x - v1.x);
-    int e2 = (p.x - v2.x) * (v0.y - v2.y) - (p.y - v2.y) * (v0.x - v2.x);
+    float e0 = edgeFunction(v1, v2, p);
+    float e1 = edgeFunction(v2, v0, p);
+    float e2 = edgeFunction(v0, v1, p);
     return (e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0);
 }
 
@@ -62,7 +62,8 @@ Vec2i Vec3ito2i(Vec3i v) {
     return Vec2i(v.x, v.y);
 }
 
-void triangle(Vec3i v0, Vec3i v1, Vec3i v2, Vec3i t0, Vec3i t1, Vec3i t2, TGAImage &image, TGAColor color) {
+// redner 2D triangle
+void triangle(Vec3i v0, Vec3i v1, Vec3i v2, Vec3i t0, Vec3i t1, Vec3i t2, TGAImage &image) {
     // boundary box
     int minX = std::min(v0.x, std::min(v1.x, v2.x));
     int maxX = std::max(v0.x, std::max(v1.x, v2.x));
@@ -77,23 +78,36 @@ void triangle(Vec3i v0, Vec3i v1, Vec3i v2, Vec3i t0, Vec3i t1, Vec3i t2, TGAIma
             if (inside(v0_2i, v1_2i, v2_2i, p_2i)) {
 
                 float area = edgeFunction(v0_2i, v1_2i, v2_2i);
-                float w0 = edgeFunction(v1_2i, v2_2i, p_2i) / area;
-                float w1 = edgeFunction(v2_2i, v0_2i, p_2i) / area;
-                float w2 = edgeFunction(v0_2i, v1_2i, p_2i) / area;
-                float z = v0.z * w0 + v1.z * w1 + v2.z * w2;
+                float w0 = edgeFunction(v1_2i, v2_2i, p_2i) / (float)area;
+                float w1 = edgeFunction(v2_2i, v0_2i, p_2i) / (float)area;
+                float w2 = edgeFunction(v0_2i, v1_2i, p_2i) / (float)area;
+
+                // 1/z = 1/z0 * w0 + 1/z1 * w1 + 1/z2 * w2
+                float z = 1.0 / ( 1.0/v0.z * w0 + 1.0/v1.z * w1 + 1.0/v2.z * w2 );
 
                 TGAColor c0 = textureImage.get(t0.x, textureImgHeight - t0.y);
                 TGAColor c1 = textureImage.get(t1.x, textureImgHeight - t1.y);
                 TGAColor c2 = textureImage.get(t2.x, textureImgHeight - t2.y);
-                TGAColor finalColor = TGAColor(c0.r * w0 + c1.r * w1 + c2.r * w2, c0.g * w0 + c1.g * w1 + c2.g * w2, c0.b * w0 + c1.b * w1 + c2.b * w2, 255);
 
-                if (z < zBuffer[x][y]) {
+                // r * 1/z = r0 * 1/z0 * w0 + r1 * 1/z1 * w1 + r2 * 1/z2 * w2
+                float r = (c0.r / (float)v0.z * w0 + c1.r / (float)v1.z * w1 + c2.r / (float)v2.z * w2) * z;
+                float g = (c0.g / (float)v0.z * w0 + c1.g / (float)v1.z * w1 + c2.g / (float)v2.z * w2) * z;
+                float b = (c0.b / (float)v0.z * w0 + c1.b / (float)v1.z * w1 + c2.b / (float)v2.z * w2) * z;
+                TGAColor finalColor = TGAColor(r, g, b, 255);
+
+                if (z < -1 && abs(z) < zBuffer[x][y]) {
                     image.set(x, y, finalColor);
-                    zBuffer[x][y] = z;
+                    zBuffer[x][y] = abs(z);
                 }
             }
         }
     }
+}
+
+void project(Vec3f &v) {
+    v.z += -2;
+    v.x /= -v.z;
+    v.y /= -v.z;
 }
 
 int main(int argc, char** argv) {
@@ -122,18 +136,21 @@ int main(int argc, char** argv) {
         Vec3f v0 = model->vert(face[0]);
         Vec3f v1 = model->vert(face[1]);
         Vec3f v2 = model->vert(face[2]);
+
+        project(v0);
+        project(v1);
+        project(v2);
+
         Vec3f t0 = model->textureVert(face[3]);
         Vec3f t1 = model->textureVert(face[4]);
         Vec3f t2 = model->textureVert(face[5]);
-
-        TGAColor color = textureImage.get(t2.x * textureImgWidth, t2.y * textureImgHeight);
 
         Vec3f world_coords[3] = {v0, v1, v2};
         Vec3f n = (world_coords[2]-world_coords[0])^(world_coords[1]-world_coords[0]); 
         n.normalize(); 
         float intensity = n*light_dir; 
         if (intensity > 0) {
-            triangle(Vec3i((v0.x+1.)*width/2., (v0.y+1.)*height/2., v0.z), Vec3i((v1.x+1.)*width/2., (v1.y+1.)*height/2., v1.z), Vec3i((v2.x+1.)*width/2., (v2.y+1.)*height/2., v2.z), Vec3i(t0.x * textureImgWidth, t0.y * textureImgHeight, 0), Vec3i(t1.x * textureImgWidth, t1.y * textureImgHeight, 0), Vec3i(t2.x * textureImgWidth, t2.y * textureImgHeight, 0), image, color);
+            triangle(Vec3i((v0.x+1.)*width/2., (v0.y+1.)*height/2., (v0.z+1.)*width/2), Vec3i((v1.x+1.)*width/2., (v1.y+1.)*height/2., (v1.z+1.)*width/2), Vec3i((v2.x+1.)*width/2., (v2.y+1.)*height/2., (v2.z+1.)*width/2), Vec3i(t0.x * textureImgWidth, t0.y * textureImgHeight, 0), Vec3i(t1.x * textureImgWidth, t1.y * textureImgHeight, 0), Vec3i(t2.x * textureImgWidth, t2.y * textureImgHeight, 0), image);
         }
     }
 
