@@ -104,10 +104,11 @@ void triangle(Vec3i v0, Vec3i v1, Vec3i v2, Vec3i t0, Vec3i t1, Vec3i t2, TGAIma
     }
 }
 
-void project(Vec3f &v) {
-    v.z += -2;
+Vec3f project(Vec3f v, float matrix[16]) {
+    v = productMatrix(v, matrix);
     v.x /= -v.z;
     v.y /= -v.z;
+    return v;
 }
 
 int main(int argc, char** argv) {
@@ -116,6 +117,15 @@ int main(int argc, char** argv) {
     } else {
         model = new Model("obj/african_head.obj");
     }
+
+    float matrixCamera2World[16] = {
+        1,  0,  0,  0,
+        0,  1,  0,  0,
+        0,  0,  1,  0,
+        0,  0,  1.6,  1
+    };
+    float matrixWorld2Camera[16] = {};
+    inverseMatrix(matrixCamera2World, matrixWorld2Camera);
 
     // init z-buffer
     for (int i = 0; i < width; i++) {
@@ -137,9 +147,9 @@ int main(int argc, char** argv) {
         Vec3f v1 = model->vert(face[1]);
         Vec3f v2 = model->vert(face[2]);
 
-        project(v0);
-        project(v1);
-        project(v2);
+        v0 = project(v0, matrixWorld2Camera);
+        v1 = project(v1, matrixWorld2Camera);
+        v2 = project(v2, matrixWorld2Camera);
 
         Vec3f t0 = model->textureVert(face[3]);
         Vec3f t1 = model->textureVert(face[4]);
