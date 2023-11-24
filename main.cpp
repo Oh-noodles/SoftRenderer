@@ -7,7 +7,7 @@
 #include <iostream>
 
 #define INF 99999999
-Vec3f light_dir(0,0,-1); // define light_dir
+Vec3f light_dir(1,-1,1); // define light_dir
 
 const int width = 800;
 const int height = 800;
@@ -78,7 +78,7 @@ int line(TGAImage &image, int x1, int y1, int x2, int y2, TGAColor color) {
     return 0;
 }
 
-int triangle(TGAImage &image, Vec3i v0, Vec3i v1, Vec3i v2, TGAColor c0, TGAColor c1, TGAColor c2) {
+int triangle(TGAImage &image, Vec3i v0, Vec3i v1, Vec3i v2, TGAColor c0, TGAColor c1, TGAColor c2, float ity0, float ity1, float ity2) {
     // loop pixels in rectangle boundary
     // and use edge function to check if it is in triangle
     int minX = std::min(v0.x, std::min(v1.x, v2.x));
@@ -90,7 +90,7 @@ int triangle(TGAImage &image, Vec3i v0, Vec3i v1, Vec3i v2, TGAColor c0, TGAColo
     Vec2i v1_2i = Vec2i(v1.x, v1.y);
     Vec2i v2_2i = Vec2i(v2.x, v2.y);
     float area = edgeFunction(v0_2i, v1_2i, v2_2i);
-
+ 
     for (int x = minX; x <= maxX; x++) {
         for (int y = minY; y <= maxY; y++) {
             if (inside(Vec2i(v0.x, v0.y), Vec2i(v1.x, v1.y), Vec2i(v2.x, v2.y), Vec2i(x, y))) {
@@ -102,14 +102,18 @@ int triangle(TGAImage &image, Vec3i v0, Vec3i v1, Vec3i v2, TGAColor c0, TGAColo
                 // z = 1 / ( 1/z0 * k0 + 1/z1 * k1 + 1/z2 * k2 )
                 float z = 1.0 / ( 1.0/v0.z * w0 + 1.0/v1.z * w1 + 1.0/v2.z * w2 );
                 if (z < -1 && abs(z) < zBuffer[x][y]) {
+                    zBuffer[x][y] = abs(z);
                     // c * 1/z = c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2
                     // c = z * (c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2)
                     float r = z * (c0.r/(float)v0.z * w0 + c1.r/(float)v1.z * w1 + c2.r/(float)v2.z * w2);
                     float g = z * (c0.g/(float)v0.z * w0 + c1.g/(float)v1.z * w1 + c2.g/(float)v2.z * w2);
                     float b = z * (c0.b/(float)v0.z * w0 + c1.b/(float)v1.z * w1 + c2.b/(float)v2.z * w2);
 
-                    zBuffer[x][y] = abs(z);
-                    image.set(x, y, TGAColor(r, g, b, 255));
+                    float ity = z * (ity0/(float)v0.z * w0 + ity1/(float)v1.z * w1 + ity2/(float)v2.z * w2);
+                    ity = std::min(1.0f, ity);
+                    ity = std::max(0.0f, ity);
+
+                    image.set(x, y, TGAColor(r * ity, g * ity, b * ity, 255 * ity));
                 }
             }
         }
@@ -143,30 +147,30 @@ int main() {
 
     for (int i = 0; i < model.nfaces(); i++) {
         std::vector<int> f = model.face(i);
-        Vec3f v0, v1, v2, vt0, vt1, vt2;
+        Vec3f v0, v1, v2, vt0, vt1, vt2, nt0, nt1, nt2;
         v0 = model.vert(f[0]);
         v1 = model.vert(f[1]);
         v2 = model.vert(f[2]);
         vt0 = model.textureVert(f[3]);
         vt1 = model.textureVert(f[4]);
         vt2 = model.textureVert(f[5]);
+        nt0 = model.normalVert(f[6]);
+        nt1 = model.normalVert(f[7]);
+        nt2 = model.normalVert(f[8]);
         project(v0, MatrixWorldToCamera);
         project(v1, MatrixWorldToCamera);
         project(v2, MatrixWorldToCamera);
 
-        Vec3f world_coords[3] = {v0, v1, v2};
-        Vec3f n = (world_coords[2]-world_coords[0])^(world_coords[1]-world_coords[0]); 
-        n.normalize(); 
-        float intensity = n*light_dir; 
-        if (intensity > 0) {
-            Vec3i v0_3i = Vec3i((v0.x + 1) / 2.0 * width, (v0.y + 1) / 2.0 * height, (v0.z + 1) / 2.0 * width);
-            Vec3i v1_3i = Vec3i((v1.x + 1) / 2.0 * width, (v1.y + 1) / 2.0 * height, (v1.z + 1) / 2.0 * width);
-            Vec3i v2_3i = Vec3i((v2.x + 1) / 2.0 * width, (v2.y + 1) / 2.0 * height, (v2.z + 1) / 2.0 * width);
-            TGAColor c0 = textureImage.get(vt0.x * textureWidth, (1 - vt0.y) * textureHeight);
-            TGAColor c1 = textureImage.get(vt1.x * textureWidth, (1 - vt1.y) * textureHeight);
-            TGAColor c2 = textureImage.get(vt2.x * textureWidth, (1 - vt2.y) * textureHeight);
-            triangle(image, v0_3i, v1_3i, v2_3i, c0, c1, c2);
-        }
+        Vec3i v0_3i = Vec3i((v0.x + 1) / 2.0 * width, (v0.y + 1) / 2.0 * height, (v0.z + 1) / 2.0 * width);
+        Vec3i v1_3i = Vec3i((v1.x + 1) / 2.0 * width, (v1.y + 1) / 2.0 * height, (v1.z + 1) / 2.0 * width);
+        Vec3i v2_3i = Vec3i((v2.x + 1) / 2.0 * width, (v2.y + 1) / 2.0 * height, (v2.z + 1) / 2.0 * width);
+        TGAColor c0 = textureImage.get(vt0.x * textureWidth, (1 - vt0.y) * textureHeight);
+        TGAColor c1 = textureImage.get(vt1.x * textureWidth, (1 - vt1.y) * textureHeight);
+        TGAColor c2 = textureImage.get(vt2.x * textureWidth, (1 - vt2.y) * textureHeight);
+        float ity0 = nt0 * light_dir;
+        float ity1 = nt1 * light_dir;
+        float ity2 = nt2 * light_dir;
+        triangle(image, v0_3i, v1_3i, v2_3i, c0, c1, c2, ity0, ity1, ity2);
     }
     image.flip_vertically();
     image.write_tga_file("output.tga");

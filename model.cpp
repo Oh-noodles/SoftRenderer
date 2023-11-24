@@ -22,17 +22,22 @@ Model::Model(const char *filename) {
             verts_.push_back(v);
         } else if (!line.compare(0, 2, "f ")) {
             char cTrash;
-            int x, y, z, vt0, vt1, vt2, iTrash;
+            int x, y, z, vt0, vt1, vt2, nt0, nt1, nt2, iTrash;
             iss >> cTrash;
-            iss >> x >> cTrash >> vt0 >> cTrash >> iTrash;
-            iss >> y >> cTrash >> vt1 >> cTrash >> iTrash;
-            iss >> z >> cTrash >> vt2 >> cTrash >> iTrash;
-            faces_.push_back({x-1, y-1, z-1, vt0-1, vt1-1, vt2-1});
+            iss >> x >> cTrash >> vt0 >> cTrash >> nt0;
+            iss >> y >> cTrash >> vt1 >> cTrash >> nt1;
+            iss >> z >> cTrash >> vt2 >> cTrash >> nt2;
+            faces_.push_back({x-1, y-1, z-1, vt0-1, vt1-1, vt2-1, nt0-1, nt1-1, nt2-1});
         } else if (!line.compare(0, 3, "vt ")) {
             std::string s;
             float x, y, z;
             iss >> s >> x >> y >> z;
             textureVerts_.push_back(Vec3f(x, y, z));
+        } else if (!line.compare(0, 3, "vn ")) {
+            std::string s;
+            float x, y, z;
+            iss >> s >> x >> y >> z;
+            normalVerts_.push_back(Vec3f(x, y, z));
         }
     }
 }
@@ -51,6 +56,10 @@ Vec3f Model::textureVert(int i) {
     return textureVerts_[i];
 }
 
+Vec3f Model::normalVert(int i) {
+    return normalVerts_[i];
+}
+
 int Model::nverts() {
     return (int)verts_.size();
 }
@@ -61,4 +70,8 @@ int Model::nfaces() {
 
 int Model::nTextureVerts() {
     return (int)textureVerts_.size();
+}
+
+int Model::nNormalVerts() {
+    return (int)normalVerts_.size();
 }
