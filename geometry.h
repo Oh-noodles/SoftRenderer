@@ -2,6 +2,7 @@
 #define __GEOMETRY_H__
 
 #include <cmath>
+#include <array>
 #include <iostream>
 
 
@@ -54,14 +55,21 @@ template <class t> std::ostream& operator<<(std::ostream& s, Vec3<t>& v) {
 	return s;
 }
 
-// float invf(int i,int j,const float* m);
-// bool inverseMatrix(const float *m, float *out);
-// Vec3f productMatrix(Vec3f v, const float *m);
 
+class Matrix44f {
+	private:
+		
+	public:
+		float m[16] = {0};
+		Matrix44f();
+		Matrix44f(std::array<float, 16> m);
+		Matrix44f(float m[16]);
+		~Matrix44f();
+		Matrix44f inverse();
+};
+
+Matrix44f operator*(Matrix44f mat1, Matrix44f mat2);
+Vec3f operator*(Matrix44f mat, Vec3f v);
 float invf(int i,int j,const float* m);
-
-bool inverseMatrix(const float *m, float *out);
-
-Vec3f productMatrix(Vec3f v, const float *m);
 
 #endif //__GEOMETRY_H__

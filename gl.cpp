@@ -1,10 +1,13 @@
 #include "gl.h"
 
-int project(Vec3f &v, float *matrix) {
-    v = productMatrix(v, matrix);
-    v.x /= -v.z;
-    v.y /= -v.z;
-    return 0;
+Vec3f project(Vec3f &v, Matrix44f matrix) {
+    Vec3f ret = matrix * v;
+    ret.x /= -ret.z;
+    ret.y /= -ret.z;
+    ret.x = (ret.x + 1) / 2.0;
+    ret.y = (ret.y + 1) / 2.0;
+    ret.z = (ret.z + 1) / 2.0;
+    return ret;
 }
 
 float edgeFunction(Vec2i v0, Vec2i v1, Vec2i v2) {
@@ -54,7 +57,7 @@ int line(TGAImage &image, int x1, int y1, int x2, int y2, TGAColor color) {
     return 0;
 }
 
-int triangle(TGAImage &image, TGAImage &zBuffer, Vec3i v0, Vec3i v1, Vec3i v2, TGAColor c0, TGAColor c1, TGAColor c2, float ity0, float ity1, float ity2) {
+int triangle(TGAImage &image, TGAImage &zBuffer, Vec3f v0, Vec3f v1, Vec3f v2, TGAColor c0, TGAColor c1, TGAColor c2, float ity0, float ity1, float ity2) {
     // loop pixels in rectangle boundary
     // and use edge function to check if it is in triangle
     int minX = std::min(v0.x, std::min(v1.x, v2.x));
