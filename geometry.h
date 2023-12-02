@@ -3,10 +3,63 @@
 
 #include <cmath>
 #include <array>
+#include <cassert>
 #include <iostream>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <size_t DIM, typename T>
+struct Vec {
+	private:
+		T _data[DIM];
+	public:
+		Vec() {
+			for (size_t i = 0; i < DIM; i++) {
+				_data[i] = T();
+			}
+		}
+		T& operator[](size_t i) {
+			assert(i < DIM);
+			return _data[i];
+		}
+};
+
+template <typename T>
+struct Vec<2, T> {
+	T x, y;
+	Vec() {
+		x = T();
+		y = T();
+	}
+	Vec(T _x, T _y) {
+		x = _x;
+		y = _y;
+	}
+	T& operator[](size_t i) {
+		assert(i < 2);
+		return i <= 0 ? x : y;
+	}
+};
+
+template <typename T>
+struct Vec<3, T> {
+	T x, y, z;
+	Vec() {
+		x = T();
+		y = T();
+		z = T();
+	}
+	Vec(T _x, T _y, T _z) {
+		x = _x;
+		y = _y;
+		z = _z;
+	}
+	T& operator[](size_t i) {
+		assert(i < 3);
+		return i <= 0 ? x : (i == 1 ? y : z);
+	}
+};
 
 template <class t> struct Vec2 {
 	union {
@@ -40,10 +93,33 @@ template <class t> struct Vec3 {
 	template <class > friend std::ostream& operator<<(std::ostream& s, Vec3<t>& v);
 };
 
-typedef Vec2<float> Vec2f;
-typedef Vec2<int>   Vec2i;
-typedef Vec3<float> Vec3f;
-typedef Vec3<int>   Vec3i;
+template <size_t LEN, size_t DIM, typename T>
+Vec<LEN, T> embed(Vec<DIM, T> v, T fill = 1) {
+	Vec<LEN, T> ret;
+	for (size_t i = 0; i < LEN; i++) {
+		ret[i] = i < DIM ? v[i] : fill;
+	}
+	return ret;
+};
+
+template <size_t DIM, typename T>
+T operator*(Vec<DIM, T> a, Vec<DIM, T> b) {
+	T ret = T();
+	for (size_t i = 0; i < DIM; i++) {
+		ret += a[i]*b[i];
+	}
+	return ret;
+};
+
+// typedef Vec2<float> Vec2f;
+// typedef Vec2<int>   Vec2i;
+// typedef Vec3<float> Vec3f;
+// typedef Vec3<int>   Vec3i;
+
+typedef Vec<2, float> 	Vec2f;
+typedef Vec<2, int>		Vec2i;
+typedef Vec<3, float>	Vec3f;
+typedef Vec<3, int>		Vec3i;
 
 template <class t> std::ostream& operator<<(std::ostream& s, Vec2<t>& v) {
 	s << "(" << v.x << ", " << v.y << ")\n";
