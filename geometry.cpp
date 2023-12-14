@@ -61,6 +61,30 @@ Vec3f operator*(Matrix44f mat, Vec3f v) {
     );
 }
 
+Vec4f operator*(Matrix44f mat, Vec4f v) {
+  Vec4f ret;
+  for (int i = 0; i < 4; i++) {
+    float val = 0;
+    for (int j = 0; j < 4; j++) {
+      val += mat.m[i * 4 + j] * v[j];
+    }
+    ret[i] = val;
+  }
+  return ret;
+}
+
+Vec4f operator*(Vec4f v, Matrix44f mat) {
+  Vec4f ret;
+  for (int i = 0; i < 4; i++) {
+    float val = 0;
+    for (int j = 0; j < 4; j++) {
+      val += mat.m[j * 4 + i] * v[j];
+    }
+    ret[i] = val;
+  }
+  return ret;
+}
+
 float invf(int i,int j,const float* m){
 
     int o = 2+(j-i);
