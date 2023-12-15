@@ -80,7 +80,7 @@ int triangle(TGAImage &image, TGAImage &zBuffer, Vec4f v0, Vec4f v1, Vec4f v2, T
                 // 1/z = 1/z0 * k0 + 1/z1 * k1 + 1/z2 * k2
                 // z = 1 / ( 1/z0 * k0 + 1/z1 * k1 + 1/z2 * k2 )
                 float z = 1.0 / ( 1.0/v0.z * w0 + 1.0/v1.z * w1 + 1.0/v2.z * w2 );
-                if (z < -1 && abs(z) < zBuffer.get(x, y).val) {
+                if (z < 0 && abs(z) < zBuffer.get(x, y).val) {
                     zBuffer.set(x, y, TGAColor(abs(z), 1));
                     // c * 1/z = c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2
                     // c = z * (c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2)

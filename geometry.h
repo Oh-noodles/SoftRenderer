@@ -165,6 +165,7 @@ class Matrix44f {
 		Matrix44f(float m[16]);
 		~Matrix44f();
 		Matrix44f inverse();
+    Matrix44f transpose();
 };
 
 Matrix44f operator*(Matrix44f mat1, Matrix44f mat2);

@@ -41,6 +41,16 @@ Matrix44f Matrix44f::inverse() {
     return mat;
 }
 
+Matrix44f Matrix44f::transpose() {
+  Matrix44f mat;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      mat.m[i * 4 + j] = this->m[j * 4 + i];
+    }
+  }
+  return mat;
+}
+
 Matrix44f operator*(Matrix44f mat1, Matrix44f mat2) {
     Matrix44f mat;
     for (int i = 0; i < 4; i++) {
