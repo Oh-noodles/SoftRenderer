@@ -13,8 +13,11 @@ Vec3f project(Vec3f &v, Matrix44f matrix) {
 float edgeFunction(Vec2i v0, Vec2i v1, Vec2i v2) {
     return (v2.x - v0.x) * (v1.y - v0.y) - (v2.y - v0.y) * (v1.x - v0.x);
 }
+float edgeFunction(Vec2f v0, Vec2f v1, Vec2f v2) {
+    return (v2.x - v0.x) * (v1.y - v0.y) - (v2.y - v0.y) * (v1.x - v0.x);
+}
 
-bool inside(Vec2i v0, Vec2i v1, Vec2i v2, Vec2i p) {
+bool inside(Vec2f v0, Vec2f v1, Vec2f v2, Vec2f p) {
     float w0 = edgeFunction(v1, v2, p);
     float w1 = edgeFunction(v2, v0, p);
     float w2 = edgeFunction(v0, v1, p);
@@ -57,7 +60,7 @@ int line(TGAImage &image, int x1, int y1, int x2, int y2, TGAColor color) {
     return 0;
 }
 
-int triangle(TGAImage &image, TGAImage &zBuffer, Vec4f v0, Vec4f v1, Vec4f v2, TGAColor c0, TGAColor c1, TGAColor c2, float ity0, float ity1, float ity2) {
+int triangle(TGAImage &image, TGAImage &zBuffer, IShader &shader, Vec4f v0, Vec4f v1, Vec4f v2, TGAColor c0, TGAColor c1, TGAColor c2, float ity0, float ity1, float ity2) {
     // loop pixels in rectangle boundary
     // and use edge function to check if it is in triangle
     int minX = std::min(v0.x, std::min(v1.x, v2.x));
@@ -68,31 +71,38 @@ int triangle(TGAImage &image, TGAImage &zBuffer, Vec4f v0, Vec4f v1, Vec4f v2, T
     Vec2i v0_2i = Vec2i(v0.x, v0.y);
     Vec2i v1_2i = Vec2i(v1.x, v1.y);
     Vec2i v2_2i = Vec2i(v2.x, v2.y);
-    float area = edgeFunction(v0_2i, v1_2i, v2_2i);
+    // float area = edgeFunction(v0_2i, v1_2i, v2_2i);
+    float area = edgeFunction(embed<2>(v0), embed<2>(v1), embed<2>(v2));
  
     for (int x = minX; x <= maxX; x++) {
         for (int y = minY; y <= maxY; y++) {
-            if (inside(Vec2i(v0.x, v0.y), Vec2i(v1.x, v1.y), Vec2i(v2.x, v2.y), Vec2i(x, y))) {
-                float w0 = edgeFunction(v1_2i, v2_2i, Vec2i(x, y)) / (float)area;
-                float w1 = edgeFunction(v2_2i, v0_2i, Vec2i(x, y)) / (float)area;
-                float w2 = edgeFunction(v0_2i, v1_2i, Vec2i(x, y)) / (float)area;
+            Vec2f p(x, y);
+            if (inside(embed<2>(v0), embed<2>(v1), embed<2>(v2), p)) {
+                float w0 = edgeFunction(embed<2>(v1), embed<2>(v2), p) / (float)area;
+                float w1 = edgeFunction(embed<2>(v2), embed<2>(v0), p) / (float)area;
+                float w2 = edgeFunction(embed<2>(v0), embed<2>(v1), p) / (float)area;
 
                 // 1/z = 1/z0 * k0 + 1/z1 * k1 + 1/z2 * k2
                 // z = 1 / ( 1/z0 * k0 + 1/z1 * k1 + 1/z2 * k2 )
                 float z = 1.0 / ( 1.0/v0.z * w0 + 1.0/v1.z * w1 + 1.0/v2.z * w2 );
                 if (z < 0 && abs(z) < zBuffer.get(x, y).val) {
                     zBuffer.set(x, y, TGAColor(abs(z), 1));
+
+                    TGAColor color;
+                    shader.fragment(v0, v1, v2, embed<4>(p), c0, c1, c2, ity0, ity1, ity2, color);
+
                     // c * 1/z = c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2
                     // c = z * (c0 * 1/z0 * w0 + c1 * 1/z1 * w1 + c2 * 1/z2 * w2)
-                    float r = z * (c0.r/(float)v0.z * w0 + c1.r/(float)v1.z * w1 + c2.r/(float)v2.z * w2);
-                    float g = z * (c0.g/(float)v0.z * w0 + c1.g/(float)v1.z * w1 + c2.g/(float)v2.z * w2);
-                    float b = z * (c0.b/(float)v0.z * w0 + c1.b/(float)v1.z * w1 + c2.b/(float)v2.z * w2);
+                    // float r = z * (c0.r/(float)v0.z * w0 + c1.r/(float)v1.z * w1 + c2.r/(float)v2.z * w2);
+                    // float g = z * (c0.g/(float)v0.z * w0 + c1.g/(float)v1.z * w1 + c2.g/(float)v2.z * w2);
+                    // float b = z * (c0.b/(float)v0.z * w0 + c1.b/(float)v1.z * w1 + c2.b/(float)v2.z * w2);
+                    //
+                    // float ity = z * (ity0/(float)v0.z * w0 + ity1/(float)v1.z * w1 + ity2/(float)v2.z * w2);
+                    // ity = std::min(1.0f, ity);
+                    // ity = std::max(0.0f, ity);
 
-                    float ity = z * (ity0/(float)v0.z * w0 + ity1/(float)v1.z * w1 + ity2/(float)v2.z * w2);
-                    ity = std::min(1.0f, ity);
-                    ity = std::max(0.0f, ity);
-
-                    image.set(x, y, TGAColor(r * ity, g * ity, b * ity, 255 * ity));
+                    // image.set(x, y, TGAColor(r * ity, g * ity, b * ity, 255 * ity));
+                    image.set(x, y, color);
                 }
             }
         }
