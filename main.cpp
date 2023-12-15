@@ -12,17 +12,11 @@ Vec3f light_dir(1,-1,1); // define light_dir
 
 const int width = 800;
 const int height = 800;
-// Matrix44f Viewport = Matrix44f({
-//     width,  0,      0,      0,
-//     0,      height, 0,      0,
-//     0,      0,      255,    0,
-//     0,      0,      0,      1
-// });
 Matrix44f Viewport = Matrix44f({
-    300,  0,    0,      400,
-    0,    300,  0,      400,
-    0,    0,    127.5,  127.5,
-    0,    0,    0,      1
+    width/2., 0,          0,        width/2.,
+    0,        height/2.,  0,        height/2.,
+    0,        0,          255/2.,   255/2.,
+    0,        0,          0,        1
 });
 Matrix44f Projection({
     1,  0,  0,    0,
@@ -73,40 +67,20 @@ int main() {
         Vec4f v0_4f = Viewport * Projection * MatrixWorldToCamera * embed<4>(v0);
         Vec4f v1_4f = Viewport * Projection * MatrixWorldToCamera * embed<4>(v1);
         Vec4f v2_4f = Viewport * Projection * MatrixWorldToCamera * embed<4>(v2);
-        // for (int i = 0; i < 3; i++) {
-        //   v0_4f[i] /= v0_4f[3];
-        //   v1_4f[i] /= v1_4f[3];
-        //   v2_4f[i] /= v2_4f[3];
-        // }
 
         for (int i = 0; i < 3; i++) {
           v0_4f[i] /= v0_4f[3];
           v1_4f[i] /= v1_4f[3];
           v2_4f[i] /= v2_4f[3];
         }
-        // v0_4f.x = (v0_4f.x + 1) / 2.;
-        // v0_4f.y = (v0_4f.y + 1) / 2.;
-        // v0_4f.z = (v0_4f.z + 1) / 2.;
-        // v1_4f.x = (v1_4f.x + 1) / 2.;
-        // v1_4f.y = (v1_4f.y + 1) / 2.;
-        // v1_4f.z = (v1_4f.z + 1) / 2.;
-        // v2_4f.x = (v2_4f.x + 1) / 2.;
-        // v2_4f.y = (v2_4f.y + 1) / 2.;
-        // v2_4f.z = (v2_4f.z + 1) / 2.;
-        
         
         std::cout << "v0_4f: " << v0_4f << std::endl;
-
-        v0 = Viewport * project(v0, MatrixWorldToCamera);
-        v1 = Viewport * project(v1, MatrixWorldToCamera);
-        v2 = Viewport * project(v2, MatrixWorldToCamera);
         TGAColor c0 = textureImage.get(vt0.x * textureWidth, (1 - vt0.y) * textureHeight);
         TGAColor c1 = textureImage.get(vt1.x * textureWidth, (1 - vt1.y) * textureHeight);
         TGAColor c2 = textureImage.get(vt2.x * textureWidth, (1 - vt2.y) * textureHeight);
         float ity0 = nt0 * light_dir;
         float ity1 = nt1 * light_dir;
         float ity2 = nt2 * light_dir;
-        // triangle(image, zBuffer, embed<4>(v0), embed<4>(v1), embed<4>(v2), c0, c1, c2, ity0, ity1, ity2);
         triangle(image, zBuffer, v0_4f, v1_4f, v2_4f, c0, c1, c2, ity0, ity1, ity2);
     }
     image.flip_vertically();
